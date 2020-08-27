@@ -11,24 +11,36 @@ from PIL import Image
 from PIL import ImageDraw
 import cv2
 import numpy as np
+import time
 import textwrap
 import tkinter as tk
+from tkinter import Label
+import tkinter.font as tkFont
 
-def display_message(text):  # Widget to display message
 
-   root = tk.Tk()
+def display_message(text, WidgetDisplayTime):  # Widget to display message
 
-   T = tk.Text(root, height=20, width = 50)  
-   T.pack()
-   T.insert(tk.END,text)
-   tk.mainloop()
+    root = tk.Tk()
+    root.title("UPDATE")
+    root.geometry("1000x100") #Width x Height
+    fontStyle = tkFont.Font(family="Arial", size=48)
+    start = time.time()
+    T = Label(root, text=text, font=fontStyle)
+    T.pack()
+ 
+   # main window will get destroyed after X Msec
+    root.after(WidgetDisplayTime, root.destroy) 
+
+    tk.mainloop()
+  
+
    
 def display_infoimg(text, display_bgndimg):
     font = cv2.FONT_HERSHEY_PLAIN
     font_size = 3
-    font_thickness = 4
+    font_thickness = 3
     wrapped_srctext = textwrap.wrap(text, width=50)
-    y_text = 40
+    y_text = 33
     w = display_bgndimg.shape[1]
     for i,line in enumerate(wrapped_srctext):
         

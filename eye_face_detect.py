@@ -50,9 +50,10 @@ def nothing(x):
 
 
 # loop over frames from the video stream
-   
+
+
  
-def capture_image(Show_eyes, Show_image, capture_duration, cap, detector, predictor, left, right, kernel, THRESHOLD):
+def capture_image(Show_eyes, Show_image, scan_duration, cap, detector, predictor, left, right, kernel, THRESHOLD):
 
   mid_prev = 0
   mid_diff = 0
@@ -61,7 +62,7 @@ def capture_image(Show_eyes, Show_image, capture_duration, cap, detector, predic
   first_time = 1
   frm_cnt = 0
   start_time = time.time()
-  while( (time.time() - start_time) < capture_duration ):
+  while( (time.time() - start_time) < scan_duration ):
     frm_cnt = frm_cnt + 1  
 #    print("time=%1.2f start=%1.2f frm=%d" %(time.time(), start_time, frm_cnt))
     ret, img = cap.read()

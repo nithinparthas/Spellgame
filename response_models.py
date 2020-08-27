@@ -25,7 +25,7 @@ def get_variables():
     
     
     charlist = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w',
-            'x', 'y', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '_']
+            'x', 'y', 'z', '1', '2', '3', '4', '5', '6', '7', '.', '<', '_']
     rows = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5]
     cols = [6, 7, 8, 9, 10, 11, 6, 7, 8, 9, 10, 11, 6, 7, 8, 9, 10, 11, 6, 7, 8, 9, 10, 11, 6, 7, 8, 9, 10, 11, 6, 7, 8, 9, 10, 11]
     fontsize = 52
@@ -41,7 +41,7 @@ def normpdf(x, mean, sd):
     return num/denom
 
 
-def update_dist(prob, idx, rows, cols, dist):
+def update_dist(prob, idx, rows, cols, dist, debug_dist_updates):
     
     probs = [1]*36 # Initialize list
     for r in range (0,36):
@@ -57,9 +57,12 @@ def update_dist(prob, idx, rows, cols, dist):
         
         
     sum_dist = sum(dist)
+                                         # Normalize without 34 and then renormalize with 34
     if sum_dist > 0:
         dist = [x/sum_dist for x in dist]
-        
+    if debug_dist_updates:
+      print("DIST is")
+      my_print_float(dist, 1)  
  #   for x in range(len(dist)):
  #       print("%1.2f" %dist[x])
     return(dist)   
@@ -217,15 +220,15 @@ def get_fit_prob(vld_att, movement_att, movement_nonatt, modelatt, modelnonatt, 
  #  print(em_allprob_list)       
    return(em_prob, em_attprob_list, em_nonattprob_list, em_allprob_list)
 
-def compute_means(vld_att, movement_att, movement_nonatt, mean_att, mean_nonatt, attcount, nonattcount):
+def compute_means(vld_att, movement_att, movement_nonatt, sum_att, sum_nonatt, attcount, nonattcount):
     
-   if vld_att: #attended variable
-      mean_att += movement_att
+   if vld_att: #attended variable running sum of movement for attended and non-attended variable
+      sum_att += movement_att
       attcount += 1
    else:
-      mean_nonatt += movement_nonatt
+      sum_nonatt += movement_nonatt
       nonattcount += 1    
-   return(mean_att, mean_nonatt, attcount, nonattcount)    
+   return(sum_att, sum_nonatt, attcount, nonattcount)    
      
 def update_decoded_list_auto( dec, declist, count, text, errcnt, bspacecnt, bspace_char_flag, debug_flag2):  
    
@@ -258,8 +261,9 @@ def update_decoded_list_auto( dec, declist, count, text, errcnt, bspacecnt, bspa
         errcnt = errcnt + 1
         bspace_char_flag = bspace_char_flag + 1
       
-     declist.append(dec)     
-     count = count + 1
+     declist.append(dec) 
+     if count < len(text):
+       count = count + 1
      
      
    if bspace_char_flag < 0:
@@ -271,18 +275,44 @@ def update_decoded_list_auto( dec, declist, count, text, errcnt, bspacecnt, bspa
    
    return(count, declist, errcnt, bspacecnt, bspace_char_flag)
 
+def update_scan_duration(DFLT_SCAN_DURATION, INCR_SCAN_DURATION, flag_speedup, debug_speedup, em_allprob_list, vld_att, sum_att, attcount,  sum_nonatt, nonattcount, movement_att, movement_nonatt, scan_duration, MIN_SCAN_DURATION, count, speedup_char_no)   :
+                                                          # Update speedup once per character flash
+  confirm_speedup = 0
+  if flag_speedup and len(em_allprob_list) >= 3:  # Need at least 2 entries to start
+    if (em_allprob_list[-1] > 0.5 ) and (em_allprob_list[-2] > 0.5) : # If last 2 responses have a probability 
+      if vld_att:
+          mean = sum_att/attcount   # Compute the mean from the running sum
+          if movement_att > 0.9*mean : # Make sure current movement is close to the mean
+              confirm_speedup = 1
+      else:
+          mean = sum_nonatt/nonattcount # Compute the mean from the running sum 
+          if movement_nonatt > 0.9*mean:
+              confirm_speedup = 1
+  if confirm_speedup and (speedup_char_no < count):
+     if scan_duration > MIN_SCAN_DURATION: # Do not go any faster than min duration
+       scan_duration = scan_duration - INCR_SCAN_DURATION
+       speedup_char_no = count
+  else:
+      scan_duration = scan_duration   # Hold value
+  if scan_duration <= 0:
+      print("WARNING: UNDERFLOW OCCURRING IN scan_duration UPDATE")
+  if debug_speedup:
+      print("Confirm Speedup = %d" %confirm_speedup)
+      print("Default capt duration=%f, actual cap duration=%f, speedup_count=%d charcount=%d" %(DFLT_SCAN_DURATION, scan_duration, speedup_char_no, count))
+  return(scan_duration, speedup_char_no)
 
-def check_for_distraction(vld_att, movement_att, movement_nonatt, em_attprob_list, em_nonattprob_list, em_allprob_list, mean_att, mean_nonatt, attcount, nonattcount, dist_list, debug_distraction):
+
+def check_for_distraction(vld_att, movement_att, movement_nonatt, em_attprob_list, em_nonattprob_list, em_allprob_list, sum_att, sum_nonatt, attcount, nonattcount, dist_list, debug_distraction):
    
    confirm_distraction = 0
    mean = 0.0
    if (em_allprob_list[-1] < 10**-1 ) and (em_allprob_list[-2] < 10**-1 ): 
       if vld_att:
-          mean = mean_att/attcount
+          mean = sum_att/attcount   # Compute the mean from the running sum
           if abs(mean - movement_att) > 0.25*mean :
               confirm_distraction = 1
       else:
-          mean = mean_nonatt/nonattcount
+          mean = sum_nonatt/nonattcount
           if abs(mean - movement_nonatt) > 0.5*mean:
               confirm_distraction = 1
 #   print(movement_att, movement_nonatt, attcount, nonattcount)
@@ -299,4 +329,6 @@ def update_movement_list(movement_att, movement_nonatt, movement_att_list, movem
          movement_nonatt_list.append(movement_nonatt)     
       return(movement_att_list, movement_nonatt_list)
   
-    
+def my_print_float(var, flag=0):
+    if flag:
+        print(', '.join('{:0.2e}'.format(i) for i in var))
