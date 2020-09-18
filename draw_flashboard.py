@@ -67,7 +67,7 @@ def enter_word_into_flashboard(bspace_char_flag, words, bim_for_word, gim_for_wo
     return(bim_w, gim_w, rim_w, grim_w)
 
 
-def display_message(text, WidgetDisplayTime):  # Widget to display message
+def display_message(text, WidgetDisplayTime, done=0):  # Widget to display message
 
     root = tk.Tk()
     root.title("DIALOG BOX")
@@ -94,7 +94,9 @@ def display_message(text, WidgetDisplayTime):  # Widget to display message
    # main window will get destroyed after X Msec
     root.after(WidgetDisplayTime, root.destroy) 
     #root.mainloop() 
-    root.update() # Using update() instead of mainloop() as it is non-blocking   
+    root.update() # Using update() instead of mainloop() as it is non-blocking  
+    if done:
+       root.destroy()
     
    
 def display_infoimg(text, display_bgndimg):
@@ -185,7 +187,7 @@ def display_all_messages(textwords, words, word_no, bspace_char_flag, dec_fordis
    elif count == len(text):
       displayimg = display_infoimg('LAST: ' + dec_fordisplay + ' NEXT: ' + text[count-1],  display_bgndimg)
       if flag_display_widget:
-        display_message('LAST: ' + dec_fordisplay + '\n' + 'NEXT: ' + text[count-1]+'\n\n'+ 'NEW SCAN STARTS', WidgetDisplayTime)
+        display_message('LAST: ' + dec_fordisplay + '\n' + 'NEXT: ' + text[count-1]+'\n\n', WidgetDisplayTime)
         
    textimg = display_text(declist, textbgnd_img, 1)  # Decoded text information to output on screen
    return(displayimg, textimg)
@@ -360,7 +362,26 @@ def create_tile(img, flashboard_type, loc):
       im10 = cv2.vconcat([img[loc[30]], img[loc[25]], img[loc[18]], img[loc[9]],   img[loc[4]],  img[loc[15]]])
       im11 = cv2.vconcat([img[loc[34]], img[loc[31]], img[loc[26]], img[loc[19]],  img[loc[10]], img[loc[5]]]) 
     return([im0, im1, im2, im3, im4, im5, im6, im7, im8, im9, im10, im11])
- 
+
+def get_weighted_scanorder(loc, dist, flashboard_type, scan_scheme):
+    rows_w, cols_w = [], []
+    if scan_scheme == 2:
+      if flashboard_type == 0: # Get the order for the weighted scan scheme
+         rows = [sum(dist[0:6]), sum(dist[6:12]), sum(dist[12:18]), sum(dist[18:24]), sum(dist[24:30]), sum(dist[30:36])]
+         cols = [sum(dist[6*i] for i in range(6)), sum(dist[6*i + 1] for i in range(6)), sum(dist[6*i + 2] for i in range(6)),
+                   sum(dist[6*i + 3] for i in range(6)), sum(dist[6*i + 4] for i in range(6)), sum(dist[6*i + 5] for i in range(6))]
+      elif flashboard_type == 1:
+         rows = [dist[loc[0]]+dist[loc[6]]+dist[loc[16]]+dist[loc[24]]+dist[loc[30]]+dist[loc[34]], dist[loc[11]]+dist[loc[1]]+dist[loc[7]]+dist[loc[17]]+dist[loc[25]]+dist[loc[31]] ,
+                    dist[loc[20]]+dist[loc[12]]+dist[loc[2]]+dist[loc[8]]+dist[loc[18]]+dist[loc[26]], dist[loc[27]]+dist[loc[21]]+dist[loc[13]]+dist[loc[3]]+dist[loc[9]]+dist[loc[19]] ,
+                    dist[loc[32]]+dist[loc[28]]+dist[loc[22]]+dist[loc[14]]+dist[loc[4]]+dist[loc[10]], dist[loc[35]]+dist[loc[33]]+dist[loc[29]]+dist[loc[23]]+dist[loc[15]]+dist[loc[5]]] 
+         cols = [dist[loc[0]]+dist[loc[11]]+dist[loc[20]]+dist[loc[27]]+dist[loc[32]]+dist[loc[35]], dist[loc[6]]+dist[loc[1]]+dist[loc[12]]+dist[loc[21]]+dist[loc[28]]+dist[loc[33]] ,
+                    dist[loc[16]]+dist[loc[7]]+dist[loc[2]]+dist[loc[13]]+dist[loc[22]]+dist[loc[29]], dist[loc[24]]+dist[loc[17]]+dist[loc[8]]+dist[loc[3]]+dist[loc[14]]+dist[loc[23]] ,
+                    dist[loc[30]]+dist[loc[25]]+dist[loc[18]]+dist[loc[9]]+dist[loc[4]]+dist[loc[15]], dist[loc[34]]+dist[loc[31]]+dist[loc[26]]+dist[loc[19]]+dist[loc[10]]+dist[loc[5]]]
+      rows_w = [rows.index(i) for i in sorted(rows, reverse=True)]  
+      cols_w = [cols.index(i)+6 for i in sorted(cols, reverse=True)] 
+      
+    return(rows_w, cols_w)
+
 def create_other_tiles():
     
     textbgnd_img = np.zeros((80, 480, 3), dtype="uint8")

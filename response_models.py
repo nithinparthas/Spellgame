@@ -268,14 +268,17 @@ def compute_decoded_errors(text, declist):
    return diff
 
 
-def get_rowcol_idx(idx, scan_scheme, rowcol_scanorder):
+def get_rowcol_idx(idx, scan_scheme, rowcol_scanorder, row_w, col_w):
     
    if idx == 0: 
      scanorder_row = [0, 1, 2, 3, 4, 5]
      scanorder_col = [6, 7, 8, 9, 10, 11]  
      if scan_scheme == 1:
          random.shuffle(scanorder_row)
-         random.shuffle(scanorder_col)
+         random.shuffle(scanorder_col) 
+     elif scan_scheme == 2:
+         scanorder_row = row_w
+         scanorder_col = col_w
      rowcol_scanorder = scanorder_row + scanorder_col # Merge the row and col scan orders
      
    rowcol_idx = rowcol_scanorder[idx]

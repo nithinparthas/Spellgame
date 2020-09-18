@@ -18,18 +18,17 @@ from bcigame_trie import *
 
  #Primary Simulation Control
 TextFileName = 'spell1.txt'  # Name of file which contains the text 
-simulation_mode = 2          # 0: Ideal simulation (no subject), auto-generated response 
+simulation_mode = 0          # 0: Ideal simulation (no subject), auto-generated response 
                              # 1: Gaussian data generation  (no subject), generated from PDF
                              # 2: Subject webcam capture (normal operation)
                              
-Show_eyes = 1                # 1: Show the processed webcam eye contours on the screen
-scan_scheme = 0              # 0: Deterministic, 1:  Random 
+scan_scheme = 0              # 0: Deterministic, 1:  Random, 2: Weighted
 flashboard_type = 0          # 0: Regular flashboard, 1: Diagonal flashboard
 DFLT_SCAN_DURATION = 1.5     # Flashboard scan wait time in seconds (keep it very small for simulation_mode 0 and 1 as its not required)
 
 
 #Secondary Simulation Control 
-
+Show_eyes = 1              # 1: Show the processed webcam eye contours on the screen
 THRESHOLD = 250            # This is for the eye movement detect, leave it at 250 
 DIST_THRESHOLD = 0.95      # Similar to Matlab, this variable determines a succesful character decode
 bspace_prob = 0.05         # Probability of backspace
@@ -44,7 +43,8 @@ flag_em_stats = 1          # 1: Compute EM Algorithm statistics, 0: Do not
 flag_mean_stats = 1        # 1: Compute statistics such as mean user movement etc. 0: Do not
 flag_use_wordmodel = 1     # 1: Use word model to precompute probabilities, 0: Do not
 flag_display_widget = 1    # 1: Display the guide information widget, 0: Do not
-flag_output_audio = 0      # 1: Audio output of decoded character
+flag_output_audio = 1      # 1: Audio output of decoded character
+flag_dont_use_webcam = 1   # 1: Webcam is not used (Valid only for simulation_mode 1 and 2 as subject response is auto generated)
 Show_image = 0             # 1: Will display processed webcam image of the eye contour in black and white 
 debug_em_flag = 0          # 1: Debug dump/analysis of EM algorithm variables
 debug_distraction = 0      # 1: Debug dump/analysis dump out of distraction computation variables
@@ -68,7 +68,7 @@ with open(TextFileName, "r") as f:  # Read the text to be spelled now
 
 #text = 'this_game_is_a_test_to_check_speed_of_subject_response_to_the_game'
 #text = 'zyxwvrt'
-#text = 'a_'
+text = 'a_'
 cv2.destroyAllWindows()        # Remove any old windows created by the program (unclosed ones)
 winname = "FLASHBOARD"         # Window name of the displayed flashboard
 wintarget = "FOCUS"            # Window name of a target to indicate how much user show move the head
@@ -130,6 +130,7 @@ while count < MAXCOUNT:
 
       bimg_w, gimg_w, rimg_w, grimg_w = enter_word_into_flashboard(bspace_char_flag, words, bim_for_word, gim_for_word, rim_for_word, grim_for_word, bimg, gimg, rimg, grimg)
       bimage, gimage, rimage, grimage = create_tile(bimg_w, flashboard_type, dist_sort_loc), create_tile(gimg_w, flashboard_type, dist_sort_loc), create_tile(rimg_w, flashboard_type, dist_sort_loc), create_tile(grimg_w, flashboard_type, dist_sort_loc)  # Create the basic flashboard
+      row_w, col_w = get_weighted_scanorder(dist_sort_loc, dist, flashboard_type, scan_scheme)
       displayimg, textimg = display_all_messages(textwords, words, word_no, bspace_char_flag, dec_fordisplay, display_bgndimg, flag_display_widget, count, text, declist, textbgnd_img, WidgetDisplayTime)
       img = create_full_flashboard(bimage, gimage, rimage, grimage, textimg, displayimg, textsrcimg, 12, flag_fix_distraction, distraction_list, 0, 0)
       cv2.imshow(winname,img)
@@ -144,12 +145,16 @@ while count < MAXCOUNT:
 
    while max(dist) < DIST_THRESHOLD:
       tot_scan = tot_scan + 1 # Update statistics
-      rowcol_idx, rowcol_scanorder = get_rowcol_idx(idx, scan_scheme, rowcol_scanorder) # Get rowcol index and store computed scan roder for random scan  
+      rowcol_idx, rowcol_scanorder = get_rowcol_idx(idx, scan_scheme, rowcol_scanorder, row_w, col_w) # Get rowcol index and store computed scan roder for random scan  
                                                                        # Import the flashboard now
       img = create_full_flashboard(bimage, gimage, rimage, grimage, textimg, displayimg, textsrcimg, rowcol_idx, flag_fix_distraction, distraction_list, bspace_char_flag, flag_word_complete)
       cv2.imshow(winname,img)
-                                                                 # Capture the user movement
-      movement = capture_image(Show_eyes, Show_image, scan_duration, cap, detector, predictor, left, right, kernel, THRESHOLD)
+     
+      if not flag_dont_use_webcam:                                                            # Capture the user movement
+         movement = capture_image(Show_eyes, Show_image, scan_duration, cap, detector, predictor, left, right, kernel, THRESHOLD)
+      else:  # Dummy timer to create delay in case webcam is not used at all (again, only for evaluation mode)
+         dummy_timer(scan_duration)
+         
       vld_att = check_if_attended(flag_use_wordmodel, currword, words, rowcol_idx, rows, cols, count, charlist, charlist_diag, text, bspace_char_flag, flashboard_type, dist_sort_loc) # Check to see if attended character is flashed
             
       if debug_idx_flag:
@@ -202,6 +207,7 @@ while count < MAXCOUNT:
 
 simendtime = time.time()
 displayimg = display_infoimg('GAME DONE', display_bgndimg)
+display_message('GAME DONE', WidgetDisplayTime, 1)
 img = create_full_flashboard(bimage, gimage, rimage, grimage, textimg, displayimg, textsrcimg, 12, flag_fix_distraction, distraction_list, 0, 0)
 cv2.imshow(winname,img)
 cv2.waitKey(1000) # Short timer before ending simulation

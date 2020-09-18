@@ -51,8 +51,13 @@ def nothing(x):
 
 # loop over frames from the video stream
 
-
- 
+def dummy_timer(scan_duration):
+     start_time = time.time()
+     curr_time  = time.time()
+     while (curr_time - start_time < scan_duration ):
+        curr_time = time.time() 
+     cv2.waitKey(1)
+     
 def capture_image(Show_eyes, Show_image, scan_duration, cap, detector, predictor, left, right, kernel, THRESHOLD):
 
   mid_prev = 0
