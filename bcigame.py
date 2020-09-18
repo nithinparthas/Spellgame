@@ -68,7 +68,7 @@ with open(TextFileName, "r") as f:  # Read the text to be spelled now
 
 #text = 'this_game_is_a_test_to_check_speed_of_subject_response_to_the_game'
 #text = 'zyxwvrt'
-text = 'a_'
+#text = 'a_'
 cv2.destroyAllWindows()        # Remove any old windows created by the program (unclosed ones)
 winname = "FLASHBOARD"         # Window name of the displayed flashboard
 wintarget = "FOCUS"            # Window name of a target to indicate how much user show move the head

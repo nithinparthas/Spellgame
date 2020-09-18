@@ -321,10 +321,10 @@ def initialize_dist(bspace_char_flag, trie, charlist, declist, bspace_prob, totc
           dist = [x/sum_dist for x in dist]     # Renormalize to a total prob of 1         
     w = []
     for w1 in words:
-        w.append(w1[1])   
+        w.append(w1[1]) 
     loc=np.argsort(dist)[::-1]
     loc = loc.tolist()  # convert nparray to list
-
+      
     return(dist, loc, w, cword)
 
 def get_rows_cols_diag(loc, charlist, flashboard_type):
