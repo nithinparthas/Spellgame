@@ -143,6 +143,7 @@ def display_text(declist, textbgnd_img, flg):
      
  #   declist = declist.append('-')
     text = ''.join(declist)
+    text = text[-20:]
     if flg == 1:
       text = text+'*'
 
@@ -166,6 +167,53 @@ def display_text(declist, textbgnd_img, flg):
         
     return(I) 
 
+def pzl_display_all_messages(textwords, words, word_no, bspace_char_flag, dec_fordisplay, display_bgndimg, flag_display_widget, count, text, declist, textbgnd_img, WidgetDisplayTime):
+#   print(word_no, textwords[word_no], words, dec_fordisplay)
+   if len(dec_fordisplay) > 1:
+      dec_fordisplay = dec_fordisplay[-1]
+   else:
+      dec_fordisplay = ''
+   if bspace_char_flag:
+      displayimg = display_infoimg('ERROR: ' + dec_fordisplay + ' NEXT: <', display_bgndimg)
+      if flag_display_widget:
+        display_message('ERROR: ' + dec_fordisplay + '\n' + 'NEXT: <' + '\n\n' + 'NEW SCAN STARTS', WidgetDisplayTime)
+   elif len(declist) == 0:
+      displayimg = display_infoimg('NEXT: ' + text[count],  display_bgndimg)
+      if flag_display_widget:
+        display_message('NEXT:  '+ text[count], WidgetDisplayTime) 
+   elif word_no >= len(textwords): # Applies only to game and means that game is done
+      
+      displayimg = display_infoimg('LAST: ' + dec_fordisplay + ' GAME OVER',  display_bgndimg)      
+      if flag_display_widget:
+        display_message('LAST: ' + dec_fordisplay + '\n' + 'GAME OVER' + '\n\n', WidgetDisplayTime)
+   elif textwords[word_no] in words:
+      if len(dec_fordisplay) > 0:
+         displayimg = display_infoimg('LAST: ' + dec_fordisplay + ' NEXT: ' + textwords[word_no],  display_bgndimg)
+      else:
+         displayimg = display_infoimg('NEXT: ' + textwords[word_no],  display_bgndimg) 
+      if flag_display_widget:
+         if len(dec_fordisplay) > 0:
+            display_message('LAST: ' + dec_fordisplay + '\n' + 'NEXT: '+ textwords[word_no] + '\n\n' + 'NEW SCAN STARTS', WidgetDisplayTime)
+         else:
+            display_message('NEXT: '+ textwords[word_no] + '\n\n' + 'NEW SCAN STARTS', WidgetDisplayTime)
+   elif count < len(text):
+      if len(dec_fordisplay) > 0:
+        displayimg = display_infoimg('LAST: ' + dec_fordisplay + ' NEXT: ' + text[count]+' ('+textwords[word_no]+')',  display_bgndimg)
+      else:
+        displayimg = display_infoimg('NEXT: ' + text[count]+' ('+textwords[word_no]+')',  display_bgndimg) 
+      if flag_display_widget:
+        if len(dec_fordisplay) > 0:
+          display_message('LAST: ' + dec_fordisplay + '\n' + 'NEXT: ' + text[count] + ' ('+textwords[word_no]+')'+'\n\n'+'NEW SCAN STARTS', WidgetDisplayTime) 
+        else:
+          display_message('NEXT: ' + text[count] + ' ('+textwords[word_no]+')'+'\n\n'+'NEW SCAN STARTS', WidgetDisplayTime) 
+   elif count == len(text):
+      displayimg = display_infoimg('LAST: ' + dec_fordisplay + ' NEXT: ' + text[count-1],  display_bgndimg)
+      if flag_display_widget:
+        display_message('LAST: ' + dec_fordisplay + '\n' + 'NEXT: ' + text[count-1]+'\n\n', WidgetDisplayTime)   
+   textimg = display_text([x.upper() for x in declist], textbgnd_img, 1)  # Decoded text information to output on screen
+   return(displayimg, textimg)
+   
+
 def display_all_messages(textwords, words, word_no, bspace_char_flag, dec_fordisplay, display_bgndimg, flag_display_widget, count, text, declist, textbgnd_img, WidgetDisplayTime):
 #   print(word_no, textwords[word_no], words, dec_fordisplay)
    if bspace_char_flag:
@@ -175,7 +223,11 @@ def display_all_messages(textwords, words, word_no, bspace_char_flag, dec_fordis
    elif len(declist) == 0:
       displayimg = display_infoimg('NEXT: ' + text[count],  display_bgndimg)
       if flag_display_widget:
-        display_message('NEXT:  '+ text[count], WidgetDisplayTime)           
+        display_message('NEXT:  '+ text[count], WidgetDisplayTime) 
+   elif word_no >= len(textwords): # Applies only to game and means that game is done
+      displayimg = display_infoimg('LAST: ' + dec_fordisplay + ' GAME OVER',  display_bgndimg)
+      if flag_display_widget:
+        display_message('LAST: ' + dec_fordisplay + '\n' + 'GAME OVER' + '\n\n', WidgetDisplayTime)
    elif textwords[word_no] in words:
       displayimg = display_infoimg('LAST: ' + dec_fordisplay + ' NEXT: ' + textwords[word_no],  display_bgndimg)
       if flag_display_widget:
@@ -191,9 +243,11 @@ def display_all_messages(textwords, words, word_no, bspace_char_flag, dec_fordis
         
    textimg = display_text(declist, textbgnd_img, 1)  # Decoded text information to output on screen
    return(displayimg, textimg)
-   
-def create_full_flashboard(bim, gim, rim, grim, textimg, displayimg, textsrcimg, idx, flag_fix_distraction, distraction_list, bspace_char_flag, flag_word_complete):
-    
+
+
+def create_huffman_flashboard(hattlist, charlist, bim, gim, rim, grim, textimg, displayimg, textsrcimg, flag_fix_distraction, distraction_list, bspace_char_flag, flag_word_complete):
+      
+
     if not flag_fix_distraction: # Colorize the flashboard based on feedback and flag
         him = gim
     elif distraction_list[-1]: # Change attended colors based on last distraction indication or character error (backspace)
@@ -203,8 +257,42 @@ def create_full_flashboard(bim, gim, rim, grim, textimg, displayimg, textsrcimg,
         
     if not flag_fix_distraction: # Colorize the attended row/col based on feedback and flag
         bkim = bim
-    elif distraction_list[-2] and distraction_list[-1]: # Change background colors based on last two distraction indication
+    elif len(distraction_list) >=2 and distraction_list[-2] and distraction_list[-1]: # Change background colors based on last two distraction indication
         bkim = grim
+    else:
+        bkim = bim
+        
+    htile = []
+    for ch in range(len(charlist)):
+        if charlist[ch] in hattlist:
+            htile.append(him[ch])
+        else:
+            htile.append(bkim[ch])
+            
+    row0, row1, row2, row3, row4, row5 = cv2.hconcat(htile[0:6]), cv2.hconcat(htile[6:12]), cv2.hconcat(htile[12:18]), cv2.hconcat(htile[18:24]), cv2.hconcat(htile[24:30]), cv2.hconcat(htile[30:36])
+    board = cv2.vconcat([row0, row1, row2, row3, row4, row5])
+    board = cv2.vconcat([textimg, displayimg, board, textsrcimg])
+    return(board)
+    
+def create_full_flashboard(bim, gim, rim, grim, textimg, displayimg, textsrcimg, idx, flag_fix_distraction, distraction_list, bspace_char_flag, flag_word_complete):
+    
+    if not flag_fix_distraction: # Colorize the flashboard based on feedback and flag
+        him = gim
+    elif len(distraction_list) > 0: # Change attended colors based on last distraction indication or character error (backspace)
+        if distraction_list[-1]:
+            him = rim
+        else:
+            him = gim
+    else:
+        him = gim
+        
+    if not flag_fix_distraction: # Colorize the attended row/col based on feedback and flag
+        bkim = bim
+    elif len(distraction_list) > 1: # Change background colors based on last two distraction indication
+        if  distraction_list[-2] and distraction_list[-1]:
+          bkim = grim  
+        else:
+          bkim = bim
     else:
         bkim = bim
         
@@ -262,6 +350,26 @@ def center_text(img, font, text, strip_width, strip_height, color=(255, 255, 255
     draw.text(position, text, color, font=font, align="left")
     return img
 
+def puzzle_block(text, font):
+  w, h = 50, 50
+  shape = [(0, 0), (w - 1, h - 1)]  
+
+  if not text:
+    img=Image.new(mode="RGB", size=(w,h),color =(0,0,0))
+    img1 = ImageDraw.Draw(img)
+    img1.rectangle(shape, fill=(0,0,0))
+  else:
+    img=Image.new(mode="RGB", size=(w,h),color =(255,255,255))
+    img1 = ImageDraw.Draw(img)
+    if text == '*':
+       img1.rectangle(shape, fill=(0,0,255), outline=(0,0,0), width=1)
+    else:
+       img1.rectangle(shape, fill=(255,255,255), outline=(0,0,0), width=1)
+    img = center_text(img, font, text, w, h, (0,0,0))
+#  img.save("testblue.png")
+  return img
+
+
 def blue_block(text, font):
   w, h = 80, 80
   shape = [(0, 0), (w - 1, h - 1)]  
@@ -308,6 +416,17 @@ def red_block(text, font):
   #  img.save("testred.png")
   return img   
 
+def getpzl_img(text, width, height):
+
+    fontsize = 26
+    font = ImageFont.truetype("arial.ttf", fontsize)
+    im = []
+    for j in range(height):
+      pzlimg = [np.array(puzzle_block(x,font)) for x in text[j]]
+      im.append(cv2.hconcat(pzlimg))
+    pzlboard = cv2.vconcat(im)
+    return(pzlboard)
+        
 def getimg(charset):
     fontsize = 52
     charset[33] = '.'
@@ -388,7 +507,7 @@ def create_other_tiles():
     display_bgndimg = np.ones((40, 480, 3), dtype="uint8")
     #eye = cv2.imread('eye.png')
     #eye = cv2.resize(eye, (352,240))
-    eyebgnd_img = np.zeros((300,300, 3), dtype="uint8")
+    eyebgnd_img = np.zeros((300,320, 3), dtype="uint8")
     eye = cv2.circle(eyebgnd_img,(150,150), 100, (0,0,255), -1)
     eye = cv2.circle(eye,(150,150), 25, (0,0,0), -1)
  #   crop_image =gim1()

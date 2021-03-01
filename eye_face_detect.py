@@ -51,14 +51,14 @@ def nothing(x):
 
 # loop over frames from the video stream
 
-def dummy_timer(scan_duration):
+def dummy_timer(SCAN_DURATION):
      start_time = time.time()
      curr_time  = time.time()
-     while (curr_time - start_time < scan_duration ):
+     while (curr_time - start_time < SCAN_DURATION ):
         curr_time = time.time() 
      cv2.waitKey(1)
      
-def capture_image(Show_eyes, Show_image, scan_duration, cap, detector, predictor, left, right, kernel, THRESHOLD):
+def capture_image(Show_eyes, Show_image, SCAN_DURATION, cap, detector, predictor, left, right, kernel, THRESHOLD):
 
   mid_prev = 0
   mid_diff = 0
@@ -67,7 +67,7 @@ def capture_image(Show_eyes, Show_image, scan_duration, cap, detector, predictor
   first_time = 1
   frm_cnt = 0
   start_time = time.time()
-  while( (time.time() - start_time) < scan_duration ):
+  while( (time.time() - start_time) < SCAN_DURATION ):
     frm_cnt = frm_cnt + 1  
 #    print("time=%1.2f start=%1.2f frm=%d" %(time.time(), start_time, frm_cnt))
     ret, img = cap.read()
@@ -115,11 +115,11 @@ def capture_image(Show_eyes, Show_image, scan_duration, cap, detector, predictor
     # show te image with the face detections + facial landmarks
     if Show_eyes:
        imgS = cv2.resize(img, (320, 240))
-       cv2.moveWindow('eyes', 350,150)
+       cv2.moveWindow('eyes', 400,370)
        cv2.imshow('eyes', imgS)
     if Show_image:
        threshS = cv2.resize(thresh, (320, 240))
-       cv2.moveWindow('gaze', 150,300)
+       cv2.moveWindow('gaze', 150,370)
        cv2.imshow('gaze', threshS)
       
     if cv2.waitKey(1) & 0xFF == ord('q'):
